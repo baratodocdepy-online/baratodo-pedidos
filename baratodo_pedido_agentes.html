@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BARATODO — Pedido de Agente</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #F97316; --orange-dark: #C2500A; --orange-light: #FFF0E6; --orange-mid: #FDBA74;
+    --text: #1a1614; --text-muted: #7a6f68; --text-hint: #b0a89e;
+    --bg: #faf8f6; --card: #ffffff; --border: #e8e0d8;
+    --success: #15803d; --success-bg: #f0fdf4; --error: #dc2626;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0 0 60px; }
+  .header { background: var(--text); padding: 28px 24px 24px; text-align: center; position: relative; overflow: hidden; }
+  .header::before { content:''; position:absolute; top:-40px; right:-40px; width:180px; height:180px; background:var(--orange); border-radius:50%; opacity:.12; }
+  .header::after  { content:''; position:absolute; bottom:-60px; left:-20px; width:140px; height:140px; background:var(--orange-mid); border-radius:50%; opacity:.08; }
+  .logo-area { position:relative; z-index:1; margin-bottom:10px; }
+  .logo-img { height:52px; width:auto; object-fit:contain; }
+  .logo-fallback { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; color:#fff; letter-spacing:-.5px; }
+  .logo-fallback span { color:var(--orange); }
+  .header-subtitle { font-size:13px; color:var(--orange-mid); letter-spacing:.08em; text-transform:uppercase; font-weight:500; position:relative; z-index:1; }
+  .cutoff-banner { background:var(--orange); color:#fff; text-align:center; padding:10px 20px; font-size:13px; font-weight:500; }
+  .cutoff-banner strong { font-weight:700; }
+  .container { max-width:600px; margin:0 auto; padding:28px 20px 0; }
+  .progress-bar { height:3px; background:var(--border); border-radius:2px; margin-bottom:24px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--orange); border-radius:2px; width:0%; transition:width .4s ease; }
+  .section-label { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--orange); margin:28px 0 12px; display:flex; align-items:center; gap:8px; }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:10px; transition:border-color .2s; }
+  .card:focus-within { border-color:var(--orange); }
+  label { display:block; font-size:14px; font-weight:500; color:var(--text); margin-bottom:4px; }
+  .required { color:var(--orange); margin-left:2px; }
+  .hint { font-size:12px; color:var(--text-hint); margin-bottom:8px; line-height:1.5; }
+  input[type="text"], input[type="tel"], textarea {
+    width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:9px;
+    font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text); background:var(--bg);
+    transition:border-color .2s,box-shadow .2s; outline:none;
+  }
+  input:focus, textarea:focus { border-color:var(--orange); box-shadow:0 0 0 3px rgba(249,115,22,.12); }
+  input::placeholder, textarea::placeholder { color:var(--text-hint); }
+  textarea { resize:vertical; min-height:90px; line-height:1.5; }
+  .file-zone { border:2px dashed var(--border); border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; position:relative; }
+  .file-zone:hover { border-color:var(--orange); background:var(--orange-light); }
+  .file-zone input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; border:none; padding:0; }
+  .file-icon { font-size:28px; margin-bottom:6px; }
+  .file-text { font-size:13px; color:var(--text-muted); }
+  .file-text strong { color:var(--orange); }
+  .file-name { font-size:12px; color:var(--success); margin-top:6px; display:none; font-weight:500; }
+  .field-error { font-size:12px; color:var(--error); margin-top:5px; display:none; }
+  .input-error { border-color:var(--error) !important; }
+  .btn-submit { width:100%; background:var(--orange); color:#fff; border:none; border-radius:12px; padding:16px; font-family:'Syne',sans-serif; font-size:16px; font-weight:700; letter-spacing:.02em; cursor:pointer; transition:background .2s,transform .1s; margin-top:28px; }
+  .btn-submit:hover { background:var(--orange-dark); }
+  .btn-submit:active { transform:scale(.98); }
+  .btn-submit:disabled { background:var(--text-hint); cursor:not-allowed; }
+  .success-panel { display:none; margin-top:20px; }
+  .success-header { background:var(--success-bg); border:1px solid #86efac; border-radius:14px; padding:24px; text-align:center; margin-bottom:16px; }
+  .success-header .check { font-size:40px; margin-bottom:8px; }
+  .success-header h3 { font-family:'Syne',sans-serif; font-size:18px; color:var(--success); margin-bottom:6px; }
+  .success-header p { font-size:13px; color:#166534; line-height:1.6; }
+  .resumen { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:14px; }
+  .resumen-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
+  .resumen-row { display:flex; justify-content:space-between; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px; gap:12px; }
+  .resumen-row:last-child { border-bottom:none; }
+  .resumen-key { color:var(--text-muted); min-width:120px; }
+  .resumen-val { color:var(--text); font-weight:500; text-align:right; }
+  .pedido-num { background:var(--orange); color:#fff; font-family:'Syne',sans-serif; font-size:12px; font-weight:700; padding:3px 10px; border-radius:99px; display:inline-block; }
+  .action-buttons { display:flex; gap:10px; margin-bottom:14px; }
+  .btn-wa { flex:1; background:#25D366; color:#fff; border:none; border-radius:12px; padding:14px 16px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:background .2s; text-decoration:none; }
+  .btn-wa:hover { background:#1ebe5a; }
+  .btn-pdf { flex:1; background:var(--text); color:#fff; border:none; border-radius:12px; padding:14px 16px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:background .2s; }
+  .btn-pdf:hover { background:#2d2a28; }
+  .btn-nuevo { width:100%; background:var(--orange-light); color:var(--orange-dark); border:1.5px solid var(--orange-mid); border-radius:12px; padding:13px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; transition:background .2s; margin-bottom:28px; }
+  .btn-nuevo:hover { background:#ffe4cc; }
+  .wa-format { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px 16px; font-size:13px; color:#166634; line-height:1.7; margin-top:16px; }
+  .wa-format .wa-title { font-weight:700; margin-bottom:4px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; }
+  .footer { text-align:center; padding:32px 20px 0; font-size:12px; color:var(--text-hint); line-height:1.6; }
+  .footer strong { color:var(--orange); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-area">
+    <!--
+      PASO 1 — Reemplazá TU_URL_DE_LOGO_AQUI con el link directo a tu logo.
+      Si usás Google Drive: Compartir → cualquiera con el link
+      Luego cambiá: drive.google.com/file/d/ID/view → drive.google.com/uc?id=ID
+    -->
+    <img src="https://drive.google.com/file/d/1wsh24XL0EMiB7UMCnzY1yvlUQFG5nYdY/view?usp=drive_link" alt="BARATODO" class="logo-img"
+      onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
+    <div class="logo-fallback" id="logo-text" style="display:none">BARA<span>TODO</span></div>
+  </div>
+  <div class="header-subtitle">Sistema de Pedidos para Agentes</div>
+</div>
+
+<div class="cutoff-banner">
+  ⏰ Pedidos antes de las <strong>14:00hs</strong> se despachan el mismo día
+</div>
+
+<div class="container">
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+  <form id="pedidoForm" novalidate>
+
+    <div class="section-label">Datos del agente</div>
+    <div class="card">
+      <label>Nombre completo <span class="required">*</span></label>
+      <input type="text" id="nombreAgente" placeholder="Ej: María García" required>
+      <div class="field-error" id="err-nombreAgente">Este campo es obligatorio.</div>
+    </div>
+    <div class="card">
+      <label>Ciudad y departamento <span class="required">*</span></label>
+      <input type="text" id="ciudad" placeholder="Ej: María Auxiliadora, Itapúa" required>
+      <div class="field-error" id="err-ciudad">Este campo es obligatorio.</div>
+    </div>
+    <div class="card">
+      <label>Número de WhatsApp <span class="required">*</span></label>
+      <div class="hint">Para confirmarte el pedido y el tracking</div>
+      <input type="tel" id="whatsapp" placeholder="Ej: 0981 123 456" required>
+      <div class="field-error" id="err-whatsapp">Ingresá un número válido.</div>
+    </div>
+
+    <div class="section-label">Detalle del pedido</div>
+    <div class="card">
+      <label>Producto(s) y cantidad <span class="required">*</span></label>
+      <div class="hint">Usá el nombre exacto de la tienda. Si son varios, uno por línea.</div>
+      <textarea id="productos" placeholder="Ej:&#10;Auricular Bluetooth X200 — 2 unidades&#10;Cable USB-C 1m — 3 unidades" required></textarea>
+      <div class="field-error" id="err-productos">Describí al menos un producto.</div>
+    </div>
+    <div class="card">
+      <label>Total transferido a BARATODO (Gs) <span class="required">*</span></label>
+      <div class="hint">Precio agente × cantidad. Debe coincidir exactamente con tu transferencia.</div>
+      <input type="text" id="monto" placeholder="Ej: 240.000" required>
+      <div class="field-error" id="err-monto">Ingresá el monto transferido.</div>
+    </div>
+    <div class="card">
+      <label>Comprobante de transferencia <span class="required">*</span></label>
+      <div class="hint">Foto o captura. Sin esto el pedido no se procesa.</div>
+      <div class="file-zone" id="fileZone">
+        <input type="file" id="comprobante" accept="image/*,.pdf" required>
+        <div class="file-icon">📎</div>
+        <div class="file-text">Tocá para adjuntar o arrastrá el archivo<br><strong>JPG, PNG o PDF</strong></div>
+        <div class="file-name" id="fileName"></div>
+      </div>
+      <div class="field-error" id="err-comprobante">Adjuntá el comprobante de pago.</div>
+    </div>
+
+    <div class="section-label">Datos del cliente final</div>
+    <div class="card">
+      <label>Nombre del cliente <span class="required">*</span></label>
+      <input type="text" id="nombreCliente" placeholder="Ej: Juan Pérez" required>
+      <div class="field-error" id="err-nombreCliente">Ingresá el nombre del cliente.</div>
+    </div>
+    <div class="card">
+      <label>Observaciones <span style="font-size:11px;color:var(--text-hint);font-weight:400;margin-left:4px;">(Opcional)</span></label>
+      <div class="hint">Color, modelo, instrucciones del cliente, etc.</div>
+      <textarea id="observaciones" style="min-height:70px" placeholder="Ej: El cliente prefiere el color negro si hay stock"></textarea>
+    </div>
+
+    <div class="wa-format">
+      <div class="wa-title">📱 ¿Preferís enviar por WhatsApp?</div>
+      Mandá este formato al número de BARATODO:<br>
+      <strong>PEDIDO BARATODO</strong> · Agente: [nombre] · Ciudad: [ciudad]<br>
+      Producto: [nombre] — [cantidad] · Total: Gs [monto]<br>
+      Cliente: [nombre] + foto del comprobante
+    </div>
+
+    <button type="submit" class="btn-submit" id="btnSubmit">Enviar pedido →</button>
+  </form>
+
+  <!-- PANEL ÉXITO -->
+  <div class="success-panel" id="successPanel">
+    <div class="success-header">
+      <div class="check">✅</div>
+      <h3>¡Pedido registrado!</h3>
+      <p>Descargá el PDF y envialo por WhatsApp junto con el comprobante.<br>
+      Te confirmamos en menos de 2 horas hábiles.</p>
+    </div>
+    <div class="resumen" id="resumenPedido"></div>
+    <div class="action-buttons">
+      <button class="btn-pdf" onclick="generarPDF()">📄 Descargar PDF</button>
+      <a class="btn-wa" id="btnWA" href="#" target="_blank">💬 Enviar por WhatsApp</a>
+    </div>
+    <button class="btn-nuevo" onclick="nuevoPedido()">+ Cargar otro pedido</button>
+  </div>
+
+  <div class="footer">
+    <strong>BARATODO</strong> — Ciudad del Este, Alto Paraná<br>
+    Agente Oficial · Precios de CDE en tu ciudad
+  </div>
+</div>
+
+<script>
+  // ══════════════════════════════════════════
+  // PASO 2 — Reemplazá con tu número de WhatsApp
+  // Formato: código de país + número, sin + ni espacios
+  // Ejemplo Paraguay: 595981123456
+  const WA_NUMBER = '595972244856';
+  // ══════════════════════════════════════════
+
+  let pedidoActual = {};
+
+  const camposProgress = ['nombreAgente','ciudad','whatsapp','productos','monto','nombreCliente'];
+  function updateProgress() {
+    let filled = camposProgress.filter(id => document.getElementById(id).value.trim() !== '').length;
+    let hasFile = document.getElementById('comprobante').files.length > 0;
+    document.getElementById('progress').style.width =
+      Math.round(((filled + (hasFile ? 1 : 0)) / (camposProgress.length + 1)) * 100) + '%';
+  }
+  camposProgress.forEach(id => document.getElementById(id).addEventListener('input', updateProgress));
+
+  document.getElementById('comprobante').addEventListener('change', function() {
+    if (this.files.length > 0) {
+      const fn = document.getElementById('fileName');
+      fn.textContent = '✓ ' + this.files[0].name;
+      fn.style.display = 'block';
+      document.getElementById('fileZone').style.borderColor = '#15803d';
+      document.getElementById('err-comprobante').style.display = 'none';
+    }
+    updateProgress();
+  });
+
+  function validateField(id, errorId, checkFn) {
+    const val = document.getElementById(id).value.trim();
+    const ok = checkFn ? checkFn(val) : val !== '';
+    document.getElementById(id).classList.toggle('input-error', !ok);
+    document.getElementById(errorId).style.display = ok ? 'none' : 'block';
+    return ok;
+  }
+
+  function genNumero() {
+    const n = new Date(), pad = x => String(x).padStart(2,'0');
+    return `BT-${n.getFullYear()}${pad(n.getMonth()+1)}${pad(n.getDate())}-${pad(n.getHours())}${pad(n.getMinutes())}`;
+  }
+
+  document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let ok = true;
+    ok = validateField('nombreAgente','err-nombreAgente') && ok;
+    ok = validateField('ciudad','err-ciudad') && ok;
+    ok = validateField('whatsapp','err-whatsapp', v => v.replace(/\D/g,'').length >= 7) && ok;
+    ok = validateField('productos','err-productos') && ok;
+    ok = validateField('monto','err-monto') && ok;
+    ok = validateField('nombreCliente','err-nombreCliente') && ok;
+    const hasFile = document.getElementById('comprobante').files.length > 0;
+    document.getElementById('err-comprobante').style.display = hasFile ? 'none' : 'block';
+    if (!hasFile) ok = false;
+    if (!ok) { document.querySelector('.input-error')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true; btn.textContent = 'Procesando...';
+
+    const ahora = new Date();
+    pedidoActual = {
+      numero:    genNumero(),
+      fecha:     ahora.toLocaleDateString('es-PY',{day:'2-digit',month:'2-digit',year:'numeric'}),
+      hora:      ahora.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'}),
+      agente:    document.getElementById('nombreAgente').value.trim(),
+      ciudad:    document.getElementById('ciudad').value.trim(),
+      whatsapp:  document.getElementById('whatsapp').value.trim(),
+      productos: document.getElementById('productos').value.trim(),
+      monto:     document.getElementById('monto').value.trim(),
+      cliente:   document.getElementById('nombreCliente').value.trim(),
+      obs:       document.getElementById('observaciones').value.trim(),
+    };
+
+    mostrarResumen();
+    configurarWA();
+    document.getElementById('pedidoForm').style.display = 'none';
+    const panel = document.getElementById('successPanel');
+    panel.style.display = 'block';
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+
+  function mostrarResumen() {
+    const p = pedidoActual;
+    const rows = [
+      ['N° de pedido', `<span class="pedido-num">${p.numero}</span>`],
+      ['Fecha y hora', `${p.fecha} a las ${p.hora}`],
+      ['Agente', p.agente],
+      ['Ciudad', p.ciudad],
+      ['WhatsApp agente', p.whatsapp],
+      ['Productos', p.productos.replace(/\n/g,'<br>')],
+      ['Total transferido', `Gs ${p.monto}`],
+      ['Cliente final', p.cliente],
+      ...(p.obs ? [['Observaciones', p.obs]] : []),
+    ];
+    document.getElementById('resumenPedido').innerHTML =
+      `<div class="resumen-title">Resumen del pedido</div>` +
+      rows.map(([k,v]) =>
+        `<div class="resumen-row"><span class="resumen-key">${k}</span><span class="resumen-val">${v}</span></div>`
+      ).join('');
+  }
+
+  function configurarWA() {
+    const p = pedidoActual;
+    const msg =
+`📦 *PEDIDO BARATODO*
+N°: ${p.numero}
+📅 ${p.fecha} — ${p.hora}
+
+👤 *Agente:* ${p.agente}
+📍 *Ciudad:* ${p.ciudad}
+📱 *WhatsApp:* ${p.whatsapp}
+
+🛒 *Productos:*
+${p.productos}
+
+💰 *Total transferido:* Gs ${p.monto}
+👥 *Cliente final:* ${p.cliente}${p.obs ? `\n📝 *Obs:* ${p.obs}` : ''}
+
+_Adjunto comprobante de transferencia._`;
+    document.getElementById('btnWA').href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function generarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm',format:'a4'});
+    const p = pedidoActual;
+    const OR = [249,115,22], DK = [26,22,20], GR = [120,111,104], LT = [250,248,246];
+
+    doc.setFillColor(...DK); doc.rect(0,0,210,42,'F');
+    doc.setFillColor(...OR);
+    doc.setGState(new doc.GState({opacity:.15})); doc.circle(195,8,22,'F');
+    doc.setGState(new doc.GState({opacity:1}));
+    doc.setFont('helvetica','bold'); doc.setFontSize(26); doc.setTextColor(255,255,255);
+    doc.text('BARATODO',14,20);
+    doc.setFontSize(9); doc.setTextColor(...OR);
+    doc.text('SISTEMA DE PEDIDOS PARA AGENTES',14,28);
+    doc.setDrawColor(...OR); doc.setLineWidth(.8); doc.line(14,34,196,34);
+    doc.setFontSize(9); doc.setTextColor(255,255,255);
+    doc.text(`N° ${p.numero}`,14,39);
+    doc.text(`${p.fecha}  ${p.hora}`,196,39,{align:'right'});
+
+    let y = 54;
+    function seccion(titulo, datos) {
+      doc.setFillColor(...OR); doc.setGState(new doc.GState({opacity:.1}));
+      doc.roundedRect(14,y-5,182,8,2,2,'F'); doc.setGState(new doc.GState({opacity:1}));
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...OR);
+      doc.text(titulo.toUpperCase(),18,y); y+=8;
+      datos.forEach(([key,val]) => {
+        if (!val) return;
+        doc.setFillColor(...LT); doc.rect(14,y-4,182,8,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...GR);
+        doc.text(key,18,y);
+        doc.setFont('helvetica','normal'); doc.setTextColor(...DK);
+        const lines = doc.splitTextToSize(String(val),110);
+        doc.text(lines,82,y);
+        y += Math.max(8, lines.length*5.5);
+      });
+      y+=6;
+    }
+
+    seccion('Datos del agente',[
+      ['Agente', p.agente],['Ciudad', p.ciudad],['WhatsApp', p.whatsapp]
+    ]);
+    seccion('Detalle del pedido',[
+      ['Productos', p.productos],['Total transferido', `Gs ${p.monto}`]
+    ]);
+    seccion('Cliente final',[
+      ['Nombre', p.cliente],['Observaciones', p.obs||'—']
+    ]);
+
+    doc.setFillColor(...OR); doc.setGState(new doc.GState({opacity:.12}));
+    doc.roundedRect(14,y,182,16,3,3,'F'); doc.setGState(new doc.GState({opacity:1}));
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...OR);
+    doc.text('ESTADO: RECIBIDO — Pendiente confirmación',105,y+10,{align:'center'});
+    y+=24;
+    doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(...GR);
+    doc.text('Pedidos antes de las 14:00hs se despachan el mismo día.',105,y,{align:'center'});
+    doc.setDrawColor(232,224,216); doc.setLineWidth(.3); doc.line(14,282,196,282);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GR);
+    doc.text('BARATODO · Ciudad del Este, Alto Paraná · Agente Oficial',105,287,{align:'center'});
+
+    doc.save(`Pedido_${p.numero}.pdf`);
+  }
+
+  function nuevoPedido() {
+    document.getElementById('pedidoForm').reset();
+    document.getElementById('fileName').style.display = 'none';
+    document.getElementById('fileZone').style.borderColor = '';
+    document.getElementById('progress').style.width = '0%';
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = false; btn.textContent = 'Enviar pedido →';
+    document.getElementById('pedidoForm').style.display = 'block';
+    document.getElementById('successPanel').style.display = 'none';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+</script>
+</body>
+</html>
